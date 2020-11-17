@@ -37,6 +37,18 @@ public class MainActivity extends AppCompatActivity {
         recycler.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
         update(currentPath);
     }
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("path", toolbar.getTitle().toString());
+    }
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        String path = savedInstanceState.getString("path");
+        update(path);
+        toolbar.setTitle(path);
+    }
     private String directoryEditor(String directory) {
         String[] temp = directory.split("/");
         directory = directory.replace("/" + temp[temp.length - 1], "");
