@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
         recycler = findViewById(R.id.recycler);
         recycler.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
         update(currentPath);
