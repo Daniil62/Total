@@ -1,24 +1,29 @@
 package ru.job4j.total;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.support.v7.widget.Toolbar;import java.io.File;
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private Toolbar toolbar;
     private RecyclerView recycler;
     private FileMaster master;
+    private TotalAdapter adapter;
+    private List<String> paths = new ArrayList<>();
+    private int count = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,7 +39,11 @@ public class MainActivity extends AppCompatActivity {
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
-        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+        toolbar.setNavigationOnClickListener(v -> adapter.onArrowClick());
+        adapter = new TotalAdapter(master.getFiles(currentPath));
+        if (savedInstanceState == null) {
+            paths.add(currentPath);
+        }
         recycler = findViewById(R.id.recycler);
         recycler.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
         update(currentPath);
@@ -43,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString("path", toolbar.getTitle().toString());
+        outState.putStringArrayList("paths", (ArrayList<String>) paths);
+        outState.putInt("count", count);
     }
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
@@ -50,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
         String path = savedInstanceState.getString("path");
         update(path);
         toolbar.setTitle(path);
+        paths = savedInstanceState.getStringArrayList("paths");
+        count = savedInstanceState.getInt("count");
     }
     private String directoryEditor(String directory) {
         String[] temp = directory.split("/");
@@ -58,10 +71,9 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override
     public void onBackPressed() {
-        String currentPath = master.getCurrentPath();
         String title = toolbar.getTitle().toString();
         String directory = directoryEditor(title);
-        if (!title.equals(currentPath)) {
+        if (count > 1) {
             update(directoryEditor(title));
             toolbar.setTitle(directory);
         } else {
@@ -106,24 +118,40 @@ public class MainActivity extends AppCompatActivity {
             TextView fileName = holder.view.findViewById(R.id.module_textView);
             fileName.setText(file.getName());
             holder.view.setOnClickListener(v -> {
+                ++count;
                 String directory = file.getPath();
                 if (master.getFiles(directory).size() > 0) {
                     String path = file.getPath();
                     toolbar.setTitle(path);
+                    paths.add(path);
                     update(path);
                 }
                 else if (file.getPath().contains(".ogg")) {
-                    Intent intent = new Intent("android.intent.action.simplePlayer");
-                    intent.setType("application/ogg");
-                    if (intent.resolveActivity(getPackageManager()) != null) {
-                        intent.putExtra("uri", file.getPath());
-                        intent.putExtra("track_name", file.getName());
-                        startActivity(intent);
-                    } else {
-                        Log.d("<<< IMPLICIT INTENT >>>", "Что-то какая-то хрень произошла.");
-                    }
+                    callSimplePlayer(file);
                 }
             });
+        }
+        private void callSimplePlayer(File file) {
+            Intent intent = new Intent("android.intent.action.simplePlayer");
+            intent.setType("application/ogg");
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                intent.putExtra("uri", file.getPath());
+                intent.putExtra("track_name", file.getName());
+                startActivity(intent);
+            } else {
+                Log.d("<<< IMPLICIT INTENT >>>",
+                        "Что-то какая-то хрень произошла.");
+            }
+        }
+        void onArrowClick() {
+            if (count > 1) {
+                --count;
+                update(paths.get(count));
+                String title = toolbar.getTitle().toString();
+                String directory = directoryEditor(title);
+                update(directoryEditor(title));
+                toolbar.setTitle(directory);
+            }
         }
         @Override
         public int getItemCount() {
